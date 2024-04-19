@@ -47,7 +47,7 @@ class A3C(object):
 
 
     def choose_action(self, state):
-        state = torch.tensor(state, dtype=torch.float32)
+        state = torch.tensor(state, dtype=torch.float)
         dist = self.actor_network(state)
         action = dist.sample()
         return action.item()
@@ -62,5 +62,22 @@ class A3C(object):
                 G_t[i] = rewards[i] + self.discount_factor * self.critic_network(torch.tensor(next_states[i], dtype=torch.float))
             
 
-            V(s_t) = self.critic_network(states)
+            V_s_t = self.critic_network(states)
+            critic_loss = torch.nn.functional.mse_loss(V_s_t, G_t.detach())
+
+            advantages = G_t - V_s_t
+
+            policy_probs = self.actor_network(states)
+            log_probs = policy_probs.log_prob(actions)
+            actor_loss = -torch.mean(log_probs * advantages.detach())
+
+            # Update networks
+            self.critic_optimizer.zero_grad()
+            critic_loss.backward()
+            self.critic_optimizer.step()
+
+            self.actor_optimizer.zero_grad()
+            actor_loss.backward()
+            self.actor_optimizer.step()
+            
             

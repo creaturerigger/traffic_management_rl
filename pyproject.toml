@@ -9,7 +9,26 @@ readme = "README.md"
 python = "^3.12"
 torch = "^2.2.2"
 sumo-rl = "^1.4.4"
+gym = "^0.26.2"
+tensorboard = "^2.16.2"
+torch-tb-profiler = "^0.4.3"
 
+
+[[tool.poetry.source]]
+name = "pythonhosted"
+url = "https://files.pythonhosted.org"
+priority = "primary"
+
+
+[[tool.poetry.source]]
+name = "fpho"
+url = "https://files.pythonhosted.org"
+priority = "primary"
+
+
+[[tool.poetry.source]]
+name = "PyPI"
+priority = "primary"
 
 [build-system]
 requires = ["poetry-core"]
