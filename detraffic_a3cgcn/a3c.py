@@ -2,9 +2,10 @@ import torch
 from torch import nn
 from torch.distributions import Categorical
 from torch.optim import Adam
+import numpy as np
 
 class ActorNetwork(nn.Module):
-    def __init__(self, state_size, action_size):
+    def __init__(self, state_size: int, action_size: int) -> None:
         super(ActorNetwork, self).__init__()
 
         # ActorNetwork definition
@@ -13,7 +14,7 @@ class ActorNetwork(nn.Module):
         self.output = nn.Linear(32, action_size)
 
 
-    def forward(self, state):
+    def forward(self, state: np.ndarray):
         x = torch.reul(self.fc1(state))
         x = torch.relu(self.fc2(x))
         probs = torch.softmax(self.output(x), dim=1)
@@ -22,7 +23,7 @@ class ActorNetwork(nn.Module):
     
 
 class CriticNetwork(nn.Module):
-    def __init__(self, state_size):
+    def __init__(self, state_size: int):
         super(CriticNetwork, self).__init__()
 
         self.fc1 = nn.Linear(state_size, 64)

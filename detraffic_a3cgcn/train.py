@@ -15,7 +15,7 @@ LEARNING_RATE = 0.001
 NUM_EPOCHS = 1000
 
 def main():
-    env = SumoTrafficLightEnv()
+    env = SumoTrafficLightEnv(8, 11)
     adj_matrix = get_adjacency_matrix(env)
     
     # TODO: Number of features and nodes will be changed
@@ -30,7 +30,7 @@ def main():
         total_reward = 0
         while not done:
             # Get current features
-            gcn_features = gcn_subnetwork(torch.tensor(state, dtype=torch.float), adj_matrix)
+            gcn_features = gcn_subnetwork.forward(torch.tensor(state, dtype=torch.float), adj_matrix)
 
             # Concatanate gcn features with other state elements
             state_with_gcn = torch.cat([gcn_features, torch.tensor(state, dtype=torch.float)], dim=1)
