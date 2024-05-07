@@ -3,14 +3,21 @@ from gym.spaces import Discrete, Box
 import sumo_rl
 
 class SumoTrafficLightEnv(gym.Env):
-    def __name__(self, num_light_states, num_observation_features):
+    def __init__(self, num_light_states):
         self.env = sumo_rl.parallel_env(net_file='nets/RESCO/grid4x4/grid4x4.net.xml',
                   route_file='nets/RESCO/grid4x4/grid4x4_1.rou.xml',
                   use_gui=True,
                   num_seconds=3600)
 
         self.action_space = Discrete(n=num_light_states)
-        self.observation_space = Box(low=0.0, high=1.0, shape=(num_observation_features,))
+
+        self.obs = self.env.reset()
+        self.num_intersections = len(self.obs)
+        self.num_observations_per_intersection = len(next(iter(self.obs.values())))
+
+        self.observation_space = Box(low=0.0, high=1.0,
+                                     shape=(self.num_observations_per_intersection * self.num_intersections,))
+        self.observation_space.from_jsonable()
 
     
     def step(self, action):

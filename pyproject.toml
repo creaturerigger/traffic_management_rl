@@ -12,6 +12,7 @@ sumo-rl = "^1.4.4"
 gym = "^0.26.2"
 tensorboard = "^2.16.2"
 torch-tb-profiler = "^0.4.3"
+torch-geometric = "^2.5.3"
 
 
 [[tool.poetry.source]]
