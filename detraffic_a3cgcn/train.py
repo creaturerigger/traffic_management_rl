@@ -15,7 +15,7 @@ LEARNING_RATE = 0.001
 NUM_EPOCHS = 1000
 
 def main():
-    env = SumoTrafficLightEnv(8, 11)
+    env = SumoTrafficLightEnv()
     adj_matrix = get_adjacency_matrix(env)
     
     # TODO: Number of features and nodes will be changed
