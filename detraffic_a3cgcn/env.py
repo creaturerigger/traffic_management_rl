@@ -5,20 +5,22 @@ import numpy as np
 
 class SumoTrafficLightEnv(gym.Env):
     def __init__(self):
-        self.env = sumo_rl.parallel_env(net_file='nets/RESCO/grid4x4/grid4x4.net.xml',
-                  route_file='nets/RESCO/grid4x4/grid4x4_1.rou.xml',
+        print("init started: ")
+        self.env = sumo_rl.parallel_env(net_file='nets/RESCO/ingolstadt21/ingolstadt21.net.xml',
+                  route_file='nets/RESCO/ingolstadt21/ingolstadt21.rou.xml',
                   use_gui=True,
-                  num_seconds=3600)
-        
+                  num_seconds=80000)
+        observations, info = self.env.reset()
+        print(dir(self.env))
+        print("Agents are: ", self.env.agents)
         self.num_actions = self.env.action_space(self.env.agents[0]).n
-        self.action_space = Discrete(n=len(self.num_actions))
+        self.action_space = Discrete(n=self.num_actions)
         self.obs, self.info = self.env.reset()        
         self.num_observations_per_intersection = len(next(iter(self.obs.values())))
         self.num_agents = len(self.env.agents)
         self.observation_space = Box(low=0.0, high=1.0,
                                      shape=(self.num_agents, self.num_observations_per_intersection))
-        
-        
+        print("init finished: ")
 
     
     def step(self, action):
@@ -32,7 +34,7 @@ class SumoTrafficLightEnv(gym.Env):
         return self.get_observation_from_env()
     
 
-    def get_observation_from_env(self, action=None):
+    def get_observation_from_env(self, action=None, normalization=False):
         """
         Retrieves the observation from the SUMO environment and normalizes it.
 
@@ -52,7 +54,7 @@ class SumoTrafficLightEnv(gym.Env):
         observation = observation.reshape(self.num_agents, self.num_observations_per_intersection)
 
         # Min-max normalization
-        
-        observation = (observation - observation.min(axis=0)) / ((observation.max(axis=0) - observation.min(axis=0)) + eps)
+        if normalization:
+            observation = (observation - observation.min(axis=0)) / ((observation.max(axis=0) - observation.min(axis=0)) + eps)
 
         return observation
