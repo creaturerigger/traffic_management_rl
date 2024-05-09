@@ -2,7 +2,7 @@ import numpy as np
 import sumo_rl
 
 
-def get_adjacency_matrix(env: sumo_rl.parallel_env):
+def get_adjacency_matrix(env):
     # TODO: The adjacency matrix should represent the connections
     #       between the agents
     NUM_AGENTS = env.num_agents

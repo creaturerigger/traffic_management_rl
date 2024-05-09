@@ -7,9 +7,7 @@ from a3c import A3C
 from utils import get_adjacency_matrix
 
 
-NUM_AGENTS = 21
-STATE_SIZE = 10 # TODO: It will be replaced with the actual value
-ACTION_SIZE = 4 # TODO: It will be replaced with the actual value
+
 DISCOUNT_FACTOR = 0.99
 LEARNING_RATE = 0.001
 NUM_EPOCHS = 1000
@@ -17,7 +15,9 @@ NUM_EPOCHS = 1000
 def main():
     env = SumoTrafficLightEnv()
     adj_matrix = get_adjacency_matrix(env)
-    
+    NUM_AGENTS = env.num_agents
+    STATE_SIZE = env.num_observations_per_intersection
+    ACTION_SIZE = env.num_actions
     # TODO: Number of features and nodes will be changed
     gcn_subnetwork = GCNSubnetwork(num_features=8, num_nodes=NUM_AGENTS)
     agent = A3C(STATE_SIZE, ACTION_SIZE, DISCOUNT_FACTOR, LEARNING_RATE)
@@ -25,7 +25,7 @@ def main():
     writer = SummaryWriter()
 
     for epoch in range(NUM_EPOCHS):
-        state = env.reset()
+        state = env.get_observation_from_env()
         done = False
         total_reward = 0
         while not done:

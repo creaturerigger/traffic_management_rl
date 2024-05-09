@@ -15,7 +15,7 @@ class ActorNetwork(nn.Module):
 
 
     def forward(self, state: np.ndarray):
-        x = torch.reul(self.fc1(state))
+        x = torch.relu(self.fc1(state))
         x = torch.relu(self.fc2(x))
         probs = torch.softmax(self.output(x), dim=1)
         dist = Categorical(probs)
