@@ -18,14 +18,15 @@ def main():
     NUM_AGENTS = env.num_agents
     STATE_SIZE = env.num_observations_per_intersection
     ACTION_SIZE = env.num_actions
-    # TODO: Number of features and nodes will be changed
-    gcn_subnetwork = GCNSubnetwork(num_features=8, num_nodes=NUM_AGENTS)
+# TODO: Number of features and nodes will be changed
+    gcn_subnetwork = GCNSubnetwork(num_features=, num_nodes=NUM_AGENTS)
     agent = A3C(STATE_SIZE, ACTION_SIZE, DISCOUNT_FACTOR, LEARNING_RATE)
 
     writer = SummaryWriter()
 
     for epoch in range(NUM_EPOCHS):
-        state = env.get_observation_from_env()
+        actions = {agent: env.env.action_space(agent).sample() for agent in env.env.agents}
+        state = env.get_observation_from_env(action=actions)
         done = False
         total_reward = 0
         while not done:
