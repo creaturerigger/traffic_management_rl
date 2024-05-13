@@ -15,11 +15,12 @@ NUM_EPOCHS = 1000
 def main():
     env = SumoTrafficLightEnv()
     adj_matrix = get_adjacency_matrix(env)
+    print(adj_matrix)
     NUM_AGENTS = env.num_agents
     STATE_SIZE = env.num_observations_per_intersection
     ACTION_SIZE = env.num_actions
 # TODO: Number of features and nodes will be changed
-    gcn_subnetwork = GCNSubnetwork(num_features=, num_nodes=NUM_AGENTS)
+    gcn_subnetwork = GCNSubnetwork(num_features=21)
     agent = A3C(STATE_SIZE, ACTION_SIZE, DISCOUNT_FACTOR, LEARNING_RATE)
 
     writer = SummaryWriter()

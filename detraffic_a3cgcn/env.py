@@ -54,9 +54,9 @@ class SumoTrafficLightEnv(gym.Env):
         processed_observation = [self.padding_before(s, max_len) for s in processed_observation if len(s)]
         
         observation = np.array(processed_observation)
-        print(observation.shape)
         # observation = observation.reshape(self.num_agents, max_len)
-
+        observation = np.expand_dims(observation, axis=0)
+        print(observation.shape)
         # Min-max normalization
         if normalization:
             observation = (observation - observation.min(axis=0)) / ((observation.max(axis=0) - observation.min(axis=0)) + eps)
