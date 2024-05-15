@@ -2,7 +2,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from env import SumoTrafficLightEnv
-from gcn import GCNSubnetwork
+from gcn import DGN
 from a3c import A3C
 from utils import get_adjacency_matrix
 
@@ -19,8 +19,8 @@ def main():
     NUM_AGENTS = env.num_agents
     STATE_SIZE = env.num_observations_per_intersection
     ACTION_SIZE = env.num_actions
-# TODO: Number of features and nodes will be changed
-    gcn_subnetwork = GCNSubnetwork(num_features=21)
+    # TODO: Number of features and nodes will be changed
+    dgn_network = DGN(NUM_AGENTS, 33, 32, ACTION_SIZE)
     agent = A3C(STATE_SIZE, ACTION_SIZE, DISCOUNT_FACTOR, LEARNING_RATE)
 
     writer = SummaryWriter()

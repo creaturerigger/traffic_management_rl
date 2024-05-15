@@ -1,18 +1,69 @@
 import torch
-from torch import nn
-from torch_geometric.nn import GCNConv
+import torch.nn as nn
+import torch.autograd as autograd 
+import torch.nn.functional as F
+USE_CUDA = torch.cuda.is_available()
+Variable = lambda *args, **kwargs: autograd.Variable(*args, **kwargs).cuda() if USE_CUDA else autograd.Variable(*args, **kwargs)
 
 
-class GCNSubnetwork(nn.Module):
-    def __init__(self, num_features):
-        super(GCNSubnetwork, self).__init__()
+'''
+@inproceedings{jiang2020graph,
+    	title={Graph Convolutional Reinforcement Learning},
+    	author={Jiang, Jiechuan and Dun, Chen and Huang, Tiejun and Lu, Zongqing},
+    	booktitle={ICLR},
+    	year={2020}
+}
+'''
+		
 
-        self.conv1 = nn.Conv1d(num_features, 16, kernel_size=3)
-        self.conv2 = nn.Conv1d(8, 8, kernel_size=3)
-        self.gcn = GCNConv(16, 8)  # Using GCNConv from torch_geometric
+class Encoder(nn.Module):
+	def __init__(self, din=32, hidden_dim=128):
+		super(Encoder, self).__init__()
+		self.fc = nn.Linear(din, hidden_dim)
 
-    def forward(self, X, adj_matrix):
-        X = torch.relu(self.conv1(X))
-        X = self.gcn(X, adj_matrix)  # Using GCNConv layer
-        X = torch.relu(self.conv2(X))
-        return X
+	def forward(self, x):
+		embedding = F.relu(self.fc(x))
+		return embedding
+
+class AttModel(nn.Module):
+	def __init__(self, n_node, din, hidden_dim, dout):
+		super(AttModel, self).__init__()
+		self.fcv = nn.Linear(din, hidden_dim)
+		self.fck = nn.Linear(din, hidden_dim)
+		self.fcq = nn.Linear(din, hidden_dim)
+		self.fcout = nn.Linear(hidden_dim, dout)
+
+	def forward(self, x, mask):
+		v = F.relu(self.fcv(x))
+		q = F.relu(self.fcq(x))
+		k = F.relu(self.fck(x)).permute(0,2,1)
+		h = torch.clamp(torch.mul(torch.bmm(q,k), mask),0,9e13) - 9e15*(1 - mask)
+		att = F.softmax(h,dim=2)
+
+		out = torch.bmm(att,v)
+		#out = torch.add(out,v)
+		#out = F.relu(self.fcout(out))
+		return out, h
+
+class Q_Net(nn.Module):
+	def __init__(self, hidden_dim, dout):
+		super(Q_Net, self).__init__()
+		self.fc = nn.Linear(hidden_dim, dout)
+
+	def forward(self, x):
+		q = self.fc(x)
+		return q
+
+class DGN(nn.Module):
+	def __init__(self,n_agent,num_inputs,hidden_dim,num_actions):
+		super(DGN, self).__init__()
+		
+		self.encoder = Encoder(num_inputs,hidden_dim)
+		self.att = AttModel(n_agent,hidden_dim,hidden_dim,hidden_dim)
+		self.q_net = Q_Net(hidden_dim,num_actions)
+		
+	def forward(self, x, mask):
+		h1 = self.encoder(x)
+		h2, a_w = self.att(h1, mask)
+		q = self.q_net(h2)
+		return q, a_w
