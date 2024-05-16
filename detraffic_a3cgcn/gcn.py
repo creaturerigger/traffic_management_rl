@@ -23,7 +23,6 @@ class Encoder(nn.Module):
 
 	def forward(self, x):
 		embedding = F.relu(self.fc(x))
-		print("shape of embedding is ", embedding.shape)
 		return embedding
 
 class AttModel(nn.Module):

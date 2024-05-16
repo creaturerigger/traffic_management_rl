@@ -1,6 +1,6 @@
 import xml.etree.ElementTree as ET
 import numpy as np
-from collections import defaultdict, deque
+from collections import defaultdict, deque, OrderedDict
 
 def get_adjacency_matrix_grid(net_xml: str) -> np.ndarray:
     # TODO: The adjacency matrix should represent the connections
@@ -105,3 +105,7 @@ def get_adjacency_matrix_city(net_xml: str) -> np.ndarray:
 
     # Print the adjacency matrix    
     return adj_matrix
+
+
+def sum_reward(dict1, dict2):
+    return {k: dict1[k] + dict2[k] for k in dict1}

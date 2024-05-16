@@ -40,7 +40,7 @@ class CriticNetwork(nn.Module):
         self.output = nn.Linear(32, 1)
 
 
-    def forward(self, state: np.ndarray, mask: torch.Tensor):
+    def forward(self, state: torch.Tensor, mask: torch.Tensor):
         x = self.encoder(state)
         h, _ = self.att(x, mask)
         x = torch.relu(self.fc1(h))
@@ -66,18 +66,21 @@ class A3C(object):
     
 
     def learn(self, states, actions, rewards, next_states, dones, masks):
-        G_t = torch.zeros_like(rewards)
-        for i in reversed(range(len(rewards))):
-            if dones[i]:
-                G_t[i] = rewards[i]
-            else:
-                next_state = torch.tensor(next_states[i], dtype=torch.float)
-                next_mask = masks[i]
-                G_t[i] = rewards[i] + self.discount_factor * self.critic_network(next_state, next_mask)
-            
+        rewards = torch.tensor(list(rewards.values()))
+        dones = torch.tensor(list(dones.values()), dtype=torch.int)
+        G_t = torch.zeros_like(torch.Tensor(rewards))
+        
+        G_t = rewards * dones.bool()
+        dones = ~dones.bool()
+        print("Shape of next states: ", (self.discount_factor * self.critic_network(next_states, masks)).shape)
+        V_prime = self.discount_factor * self.critic_network(next_states, masks)
+        V_prime = V_prime.permute(0, 2, 1)
+        V_prime = torch.squeeze(torch.squeeze(V_prime, dim=0), dim=0)
+        G_t += rewards * dones.bool() + V_prime
+        
         states = torch.tensor(states, dtype=torch.float)
         masks = torch.tensor(masks, dtype=torch.float)
-        actions = torch.tensor(actions, dtype=torch.int64)
+        actions = torch.tensor(list(actions.values()), dtype=torch.int64)
         rewards = torch.tensor(rewards, dtype=torch.float)
 
         V_s_t = self.critic_network(states, masks)

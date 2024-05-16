@@ -1,17 +1,17 @@
 from multiprocessing import process
 import gym
 from gym.spaces import Discrete, Box
-import sumo_rl
+from sumo_rl import ingolstadt21
 import numpy as np
 import torch
 
 class SumoTrafficLightEnv(gym.Env):
     def __init__(self):
-        
-        self.env = sumo_rl.parallel_env(net_file='nets/RESCO/ingolstadt21/ingolstadt21.net.xml',
-                  route_file='nets/RESCO/ingolstadt21/ingolstadt21.rou.xml',
+        super(SumoTrafficLightEnv, self).__init__()
+        self.env = ingolstadt21(
                   use_gui=True,
-                  num_seconds=80000)
+                  yellow_time=2,
+                  render_mode='human')
         observations, info = self.env.reset()
         
         
@@ -45,7 +45,8 @@ class SumoTrafficLightEnv(gym.Env):
         """
         
         # Get the raw observation from the environment
-        raw_observations, _, _, _, _ = self.env.step(action)  
+        
+        raw_observations, reward, terminated, truncated, info = self.env.step(action)  
         eps = 1e-12
         # Pre-process the raw observation
         processed_observation = []
@@ -62,7 +63,7 @@ class SumoTrafficLightEnv(gym.Env):
         if normalization:
             observation = (observation - observation.min(axis=0)) / ((observation.max(axis=0) - observation.min(axis=0)) + eps)
         observation = np.expand_dims(observation, axis=0)
-        return torch.Tensor(observation)
+        return torch.Tensor(observation), reward, terminated or truncated, info
     
 
     def pad_after(self, state, max_length):
