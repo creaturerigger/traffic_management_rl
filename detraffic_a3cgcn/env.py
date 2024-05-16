@@ -3,17 +3,18 @@ import gym
 from gym.spaces import Discrete, Box
 import sumo_rl
 import numpy as np
+import torch
 
 class SumoTrafficLightEnv(gym.Env):
     def __init__(self):
-        print("init started: ")
+        
         self.env = sumo_rl.parallel_env(net_file='nets/RESCO/ingolstadt21/ingolstadt21.net.xml',
                   route_file='nets/RESCO/ingolstadt21/ingolstadt21.rou.xml',
                   use_gui=True,
                   num_seconds=80000)
         observations, info = self.env.reset()
-        print(dir(self.env))
-        print("Agents are: ", self.env.agents)
+        
+        
         self.num_actions = self.env.action_space(self.env.agents[0]).n
         self.action_space = Discrete(n=self.num_actions)
         self.obs, self.info = self.env.reset()        
@@ -21,9 +22,9 @@ class SumoTrafficLightEnv(gym.Env):
         self.num_agents = len(self.env.agents)
         self.observation_space = Box(low=0.0, high=1.0,
                                      shape=(self.num_agents, self.num_observations_per_intersection))
-        print("init finished: ")
+        
 
-    
+        
     def step(self, action):
         next_obs, reward, terminated, truncated, info = self.env.step(action)
         done = terminated or truncated
@@ -51,17 +52,17 @@ class SumoTrafficLightEnv(gym.Env):
         for _, state in raw_observations.items():
             processed_observation.append(list(state))
         max_len = max(len(s) for s in processed_observation)
+        self.num_observations_per_intersection = max_len
         processed_observation = [self.pad_after(s, max_len) for s in processed_observation if len(s)]
         
-        observation = np.array(processed_observation)
-        print(observation.shape)
+        observation = np.array(processed_observation)        
         # observation = observation.reshape(self.num_agents, max_len)
 
         # Min-max normalization
         if normalization:
             observation = (observation - observation.min(axis=0)) / ((observation.max(axis=0) - observation.min(axis=0)) + eps)
-
-        return observation
+        observation = np.expand_dims(observation, axis=0)
+        return torch.Tensor(observation)
     
 
     def pad_after(self, state, max_length):

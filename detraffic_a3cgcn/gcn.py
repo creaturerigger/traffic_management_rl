@@ -23,6 +23,7 @@ class Encoder(nn.Module):
 
 	def forward(self, x):
 		embedding = F.relu(self.fc(x))
+		print("shape of embedding is ", embedding.shape)
 		return embedding
 
 class AttModel(nn.Module):
@@ -36,7 +37,7 @@ class AttModel(nn.Module):
 	def forward(self, x, mask):
 		v = F.relu(self.fcv(x))
 		q = F.relu(self.fcq(x))
-		k = F.relu(self.fck(x)).permute(0,2,1)
+		k = F.relu(self.fck(x)).permute(0, 2, 1)
 		h = torch.clamp(torch.mul(torch.bmm(q,k), mask),0,9e13) - 9e15*(1 - mask)
 		att = F.softmax(h,dim=2)
 
@@ -67,3 +68,6 @@ class DGN(nn.Module):
 		h2, a_w = self.att(h1, mask)
 		q = self.q_net(h2)
 		return q, a_w
+	
+
+    
