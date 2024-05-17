@@ -12,10 +12,10 @@ class SumoTrafficLightEnv(gym.Env):
                   use_gui=True,
                   yellow_time=2,
                   render_mode='human')
-        self.action_size_dict = {agt: self.env.action_space(agt).n for agt in self.env.agents}
+        self.action_size_dict = {agt: self.env.action_space(agt).n for agt in self.env.possible_agents}
         self.obs, self.info = self.env.reset()        
         self.num_observations_per_intersection = len(next(iter(self.obs.values())))
-        self.num_agents = len(self.env.agents)
+        self.num_agents = len(self.env.possible_agents)
         
         
     def step(self, action):
