@@ -12,18 +12,11 @@ class SumoTrafficLightEnv(gym.Env):
                   use_gui=True,
                   yellow_time=2,
                   render_mode='human')
-        observations, info = self.env.reset()
-        
-        
-        self.num_actions = self.env.action_space(self.env.agents[0]).n
-        self.action_space = Discrete(n=self.num_actions)
+        self.action_size_dict = {agt: self.env.action_space(agt).n for agt in self.env.agents}
         self.obs, self.info = self.env.reset()        
         self.num_observations_per_intersection = len(next(iter(self.obs.values())))
         self.num_agents = len(self.env.agents)
-        self.observation_space = Box(low=0.0, high=1.0,
-                                     shape=(self.num_agents, self.num_observations_per_intersection))
         
-
         
     def step(self, action):
         next_obs, reward, terminated, truncated, info = self.env.step(action)
@@ -45,7 +38,6 @@ class SumoTrafficLightEnv(gym.Env):
         """
         
         # Get the raw observation from the environment
-        
         raw_observations, reward, terminated, truncated, info = self.env.step(action)  
         eps = 1e-12
         # Pre-process the raw observation

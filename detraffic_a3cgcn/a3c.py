@@ -6,7 +6,7 @@ import numpy as np
 from gcn import Encoder, AttModel
 
 class ActorNetwork(nn.Module):
-    def __init__(self, num_agent: int, state_size: int, action_size: int, hidden_dim: int) -> None:
+    def __init__(self, num_agent: int, state_size: int, actions_dict: dict, hidden_dim: int) -> None:
         super(ActorNetwork, self).__init__()
         
         # ActorNetwork definition
@@ -15,7 +15,10 @@ class ActorNetwork(nn.Module):
         self.att = AttModel(self.num_agent, hidden_dim, hidden_dim, hidden_dim)
         self.fc1 = nn.Linear(hidden_dim, 64)
         self.fc2 = nn.Linear(64, 32)
-        self.output = nn.Linear(32, action_size)
+        self.output_layers = nn.ModuleDict({
+            agent_id: nn.Linear(32, action_size) 
+            for agent_id, action_size in actions_dict.items()
+        })
 
 
     def forward(self, state: np.ndarray, mask: torch.Tensor):
@@ -23,9 +26,13 @@ class ActorNetwork(nn.Module):
         h, _ = self.att(x, mask)
         x = torch.relu(self.fc1(h))
         x = torch.relu(self.fc2(x))
-        probs = torch.softmax(self.output(x), dim=1)
-        dist = Categorical(probs)
-        return dist
+        dists = {}
+
+        for agent_id, output_layer in self.output_layers.items():
+            probs = torch.softmax(output_layer(x), dim=1)            
+            dist = Categorical(probs)
+            dists[agent_id] = dist
+        return dists
     
 
 class CriticNetwork(nn.Module):
@@ -50,8 +57,9 @@ class CriticNetwork(nn.Module):
     
 
 class A3C(object):
-    def __init__(self, num_agent: int, state_size: int, action_size: int,  hidden_dim: int, discount_factor: float, learning_rate: float):
-        self.actor_network = ActorNetwork(num_agent, state_size, action_size, hidden_dim)
+    def __init__(self, num_agent: int, state_size: int, actions_dict: dict,  hidden_dim: int, discount_factor: float, learning_rate: float):
+        self.num_agent = num_agent
+        self.actor_network = ActorNetwork(num_agent, state_size, actions_dict, hidden_dim)
         self.critic_network = CriticNetwork(num_agent, state_size, hidden_dim)
         self.actor_optimizer = Adam(self.actor_network.parameters(), lr=learning_rate)
         self.critic_optimizer = Adam(self.critic_network.parameters(), lr=learning_rate)
@@ -60,9 +68,15 @@ class A3C(object):
 
     def choose_action(self, state, mask):
         state = torch.tensor(state, dtype=torch.float)
-        dist = self.actor_network(state, mask)
-        action = dist.sample()
-        return action
+        dist_dict = self.actor_network(state, mask)
+        action_matrix = torch.stack([dist.sample().squeeze(0) for dist in dist_dict.values()], dim=1)
+        actions = {}
+        for i, agent_id in enumerate(dist_dict.keys()):
+            # Get the most frequent action in the i-th column
+            most_frequent_action = torch.mode(action_matrix[:, i])[0].item()
+            actions[agent_id] = most_frequent_action
+
+        return actions
     
 
     def learn(self, states, actions, rewards, next_states, dones, masks):
@@ -72,7 +86,7 @@ class A3C(object):
         
         G_t = rewards * dones.bool()
         dones = ~dones.bool()
-        print("Shape of next states: ", (self.discount_factor * self.critic_network(next_states, masks)).shape)
+        
         V_prime = self.discount_factor * self.critic_network(next_states, masks)
         V_prime = V_prime.permute(0, 2, 1)
         V_prime = torch.squeeze(torch.squeeze(V_prime, dim=0), dim=0)
@@ -80,7 +94,8 @@ class A3C(object):
         
         states = torch.tensor(states, dtype=torch.float)
         masks = torch.tensor(masks, dtype=torch.float)
-        actions = torch.tensor(list(actions.values()), dtype=torch.int64)
+        actions_tensor = torch.tensor([actions[agent_id] for agent_id in actions.keys()], dtype=torch.int64)
+        #actions = torch.tensor(list(actions.values()), dtype=torch.int64)
         rewards = torch.tensor(rewards, dtype=torch.float)
 
         V_s_t = self.critic_network(states, masks)
@@ -89,7 +104,8 @@ class A3C(object):
         advantages = G_t - V_s_t
 
         policy_probs = self.actor_network(states, masks)
-        log_probs = policy_probs.log_prob(actions)
+        print("Policy probs are: ", policy_probs)
+        log_probs = torch.cat([policy_probs[agent_id].log_prob(actions_tensor[i]).unsqueeze(0) for i, agent_id in enumerate(actions.keys())])
         actor_loss = -torch.mean(log_probs * advantages.detach())
 
         # Update networks

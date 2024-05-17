@@ -1,6 +1,10 @@
 import xml.etree.ElementTree as ET
 import numpy as np
 from collections import defaultdict, deque, OrderedDict
+import os
+from tensorboard.backend.event_processing import event_accumulator
+import matplotlib.pyplot as plt
+
 
 def get_adjacency_matrix_grid(net_xml: str) -> np.ndarray:
     # TODO: The adjacency matrix should represent the connections
@@ -109,3 +113,94 @@ def get_adjacency_matrix_city(net_xml: str) -> np.ndarray:
 
 def sum_reward(dict1, dict2):
     return {k: dict1[k] + dict2[k] for k in dict1}
+
+
+def plot_tensorboard_cumulative_reward(base_dir, tag):
+    agent_folders = [f for f in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, f))]
+    
+    for agent_folder in agent_folders:
+        event_files = [os.path.join(base_dir, agent_folder, f) for f in os.listdir(os.path.join(base_dir, agent_folder)) if f.startswith('events.out.tfevents')]
+        
+        # Initialize an event accumulator for the agent's event files
+        ea = event_accumulator.EventAccumulator(event_files[0])
+        ea.Reload()
+
+        # Get the scalar values for the specified tag
+        scalars = ea.Scalars(tag)
+
+        # Extract the steps and values
+        steps = [s.step for s in scalars]
+        values = [s.value for s in scalars]
+
+        # Compute the cumulative rewards
+        cumulative_rewards = [sum(values[:i+1]) for i in range(len(values))]
+
+        # Plot the cumulative rewards using Matplotlib
+        plt.plot(steps, cumulative_rewards, label=agent_folder.split('_')[-1])
+
+    plt.xlabel('Steps')
+    plt.ylabel('Cumulative ' + tag)
+    plt.title(f'Cumulative {tag} over time for each agent')
+    plt.legend()
+    plt.show()
+
+
+
+def plot_mean_cumulative_rewards(base_dir):
+    agent_folders = [f for f in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, f))]
+
+    cumulative_rewards_per_agent = {}
+
+    for agent_folder in agent_folders:
+        event_files = [os.path.join(base_dir, agent_folder, f) for f in os.listdir(os.path.join(base_dir, agent_folder)) if f.startswith('events.out.tfevents')]
+
+        # Initialize an event accumulator for the agent's event file
+        ea = event_accumulator.EventAccumulator(event_files[0])
+        ea.Reload()
+
+        # Explore available tags (if you are unsure of the tag names)
+        tags = ea.Tags()['scalars']
+        
+        # Assuming the first tag is the one we need, you can modify as needed
+        if not tags:
+            continue
+        tag = tags[0]
+
+        # Get the scalar values for the identified tag
+        scalars = ea.Scalars(tag)
+
+        # Extract the steps and values
+        steps = [s.step for s in scalars]
+        values = [s.value for s in scalars]
+
+        # Compute the cumulative rewards
+        cumulative_rewards = [sum(values[:i+1]) for i in range(len(values))]
+        
+        cumulative_rewards_per_agent[agent_folder] = (steps, cumulative_rewards)
+
+    # Find the common steps across all agents
+    common_steps = set.intersection(*(set(steps) for steps, _ in cumulative_rewards_per_agent.values()))
+
+    # Sort the common steps
+    common_steps = sorted(common_steps)
+
+    # Initialize a list to store the cumulative rewards for each step
+    cumulative_rewards_at_steps = {step: [] for step in common_steps}
+
+    # Collect cumulative rewards for each common step from all agents
+    for steps, cumulative_rewards in cumulative_rewards_per_agent.values():
+        step_to_reward = dict(zip(steps, cumulative_rewards))
+        for step in common_steps:
+            cumulative_rewards_at_steps[step].append(step_to_reward[step])
+
+    # Calculate the mean cumulative rewards at each common step
+    mean_cumulative_rewards = [np.mean(cumulative_rewards_at_steps[step]) for step in common_steps]
+
+    # Plot the mean cumulative rewards
+    plt.plot(common_steps, mean_cumulative_rewards, label='Mean Cumulative Reward')
+
+    plt.xlabel('Steps')
+    plt.ylabel('Mean Cumulative Reward')
+    plt.title('Mean Cumulative Rewards over Time for All Agents')
+    plt.legend()
+    plt.show()
