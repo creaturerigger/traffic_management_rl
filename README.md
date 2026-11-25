@@ -16,7 +16,7 @@ Each junction is modelled as a single agent, rather than one agent per traffic l
 - **Environment:** SUMO through `sumo-rl`, using the RESCO `ingolstadt21` scenario (21 signalised junctions). The default `sumo-rl` reward is the per-junction change in cumulative vehicle waiting time.
 - **Junction graph:** `get_adjacency_matrix_city` parses the network's `net.xml` and links two junctions when a vehicle leaving one can reach the other without passing a third traffic light.
 - **Model:** the actor and the critic are separate networks with the same trunk: a linear encoder, a single-head dot-product attention layer masked by the adjacency matrix [after DGN, Jiang et al., ICLR 2020](https://arxiv.org/abs/1810.09202), and a two-layer MLP. The actor ends in one softmax head per junction over its signal phases; the critic ends in a value head.
-- **Training loop:** at every simulation step the actor selects a phase for each junction, the environment returns the rewards and the next state, and both networks are updated from that transition with a one-step TD target, r + γV(s′). The advantage from the critic weights the actor's policy-gradient loss. Each epoch is one full SUMO episode.
+- **Training loop:** at every simulation step the actor selects a phase for each junction, the environment returns the rewards and the next state, and both networks are updated from that transition with a one-step TD target, $r + \gamma V(s')$. The advantage from the critic weights the actor's policy-gradient loss. Each epoch is one full SUMO episode.
 
 ## Tech stack
 
